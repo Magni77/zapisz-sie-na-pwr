@@ -12,7 +12,7 @@ from scraper.items import Course
 import os
 main_url = "https://edukacja.pwr.wroc.pl"
 edu_url = "https://edukacja.pwr.wroc.pl/EdukacjaWeb/studia.do"
-edu_pwd = "Malunia5" #os.environ['EDU_PASSWORD']
+edu_pwd = os.environ['EDU_PASSWORD']
 actual_year = '2016/2017'
 
 
@@ -94,6 +94,11 @@ class LoginSpider(scrapy.Spider):
             )
 
     def set_criterion(self, response):
+        """
+        This function is setting criterion in form.
+        Default is 'Z_PLANU', 'Z_WEKTORA_ZAP' - doesn't return all values for now
+        :return:
+        """
         data = {}
         soup = BeautifulSoup(response.body)
 
@@ -114,14 +119,38 @@ class LoginSpider(scrapy.Spider):
                 except:
                     pass
             data['KryteriumFiltrowania'] ='Z_PLANU' # 'Z_WEKTORA_ZAP'#
-
+            data['NrSemestru'] = '4'
+            data['kfkPkSymbol'] = 'PO-W04-TIN- - -ST-Ii-WRO- - - - - -PWR1-DWU'
+            data['kfkPkSymbol'] = '1641'
+            data['kfkPkId'] ='1641'
+            data['kfkPkSymbol_cl_edu_web_lov_handlerClass'] = 'cl.edu.web.common.lov.handlers.PrzedmiotyKsztalceniaLovHandler'
+            data['kfkPkSymbol_cl_edu_web_lov_callback'] = '/zapisy.do?event=forwardZapisy'
+            data['kfkPkSymbol_cl_edu_web_lov_callback_href'] = 'hrefKryteriumFiltrowania'
+            print(data)
             yield FormRequest(
                url='https://edukacja.pwr.wroc.pl/EdukacjaWeb/zapisy.do?event=ZapiszFiltr&event=wyborKryterium&href=#hrefKryteriumFiltrowania',
                formdata=data,
-               callback=self.parse_next
+               callback=self.get_next_page
             )
 
-    def parse_next(self, response):
+    def get_next_page(self, response):
+    #    self.get_courses(response)
+
+        soup = BeautifulSoup(response.body)
+       # print(soup.prettify())
+        soup = soup.find_all('span')#, class_='paging-numeric-span')
+        print(soup)
+        for page in soup:
+            print(page)
+
+            for input_ in page.find_all('input'):
+                if "pagingRangeStartGrupyZajecioweKursu" in input_.get('onclick'):
+                    print(input_.get('onclick'))
+                    print(input_.get('value'))
+
+
+    def get_courses(self, response):
+        self.get_next_page(response)
         soup = BeautifulSoup(response.body)
         [s.extract() for s in soup('form')]
         [s.extract() for s in soup('input')]
